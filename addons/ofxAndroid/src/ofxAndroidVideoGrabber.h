@@ -10,6 +10,9 @@
 #include "ofBaseTypes.h"
 #include "ofPixels.h"
 #include "ofEvents.h"
+#include "ofTypes.h"
+#include "ofTexture.h"
+#include <jni.h>
 
 class ofxAndroidVideoGrabber: public ofBaseVideoGrabber{
 public:
@@ -17,37 +20,42 @@ public:
 	~ofxAndroidVideoGrabber();
 
 	//needs implementing
-	void	listDevices();
-	bool	initGrabber(int w, int h);
+	vector<ofVideoDevice>	listDevices() const;
+	bool	setup(int w, int h);
+	bool	isInitialized() const;
 
-	bool	isFrameNew();
+	bool	isFrameNew() const;
 	void	update();
 
-	unsigned char 	* getPixels();
-	ofPixelsRef		getPixelsRef();
+	ofPixels& getPixels();
+	const ofPixels&	getPixels() const;
 
 	void	close();
 
-	float	getHeight();
-	float	getWidth();
+	float	getHeight() const;
+	float	getWidth() const;
 
 	//should implement!
 	void setVerbose(bool bTalkToMe);
 	void setDeviceID(int _deviceID);
 	void setDesiredFrameRate(int framerate);
 	void videoSettings();
-	void setPixelFormat(ofPixelFormat pixelFormat);
-	ofPixelFormat getPixelFormat();
+	bool setPixelFormat(ofPixelFormat pixelFormat);
+	ofPixelFormat getPixelFormat() const;
+
+	// specifics android
+
+	bool setAutoFocus(bool autofocus);
+
+	ofTexture *	getTexturePtr();
 
 	ofEvent<ofPixels> newFrameE;
 
+	struct Data;
+private:
+	bool supportsTextureRendering();
+
 	// only to be used internally to resize;
 	ofPixelsRef getAuxBuffer();
-private:
-	int attemptFramerate;
-	bool bIsFrameNew;
-	bool bGrabberInited;
-	ofPixelFormat internalPixelFormat;
-	ofPixels pixels;
-	ofPixels auxBuffer;
+	shared_ptr<Data> data;
 };

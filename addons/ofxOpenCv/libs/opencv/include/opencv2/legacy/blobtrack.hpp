@@ -49,14 +49,14 @@
 #include "opencv2/core/core_c.h"
 #include <stdio.h>
 
-#if _MSC_VER >= 1200 || defined __BORLANDC__
+#if (defined _MSC_VER && _MSC_VER >= 1200) || defined __BORLANDC__
 #define cv_stricmp stricmp
 #define cv_strnicmp strnicmp
 #if defined WINCE
 #define strdup _strdup
 #define stricmp _stricmp
 #endif
-#elif defined __GNUC__
+#elif defined __GNUC__ || defined __sun
 #define cv_stricmp strcasecmp
 #define cv_strnicmp strncasecmp
 #else
@@ -294,7 +294,7 @@ protected:
 class CV_EXPORTS CvBlobDetector: public CvVSModule
 {
 public:
-	CvBlobDetector(){SetTypeName("BlobDetector");};
+    CvBlobDetector(){SetTypeName("BlobDetector");};
     /* Try to detect new blob entrance based on foreground mask. */
     /* pFGMask - image of foreground mask */
     /* pNewBlob - pointer to CvBlob structure which will be filled if new blob entrance detected */
@@ -358,8 +358,8 @@ CV_INLINE CvRect cvRectIntersection( const CvRect r1, const CvRect r2 )
 {
     CvRect r = cvRect( MAX(r1.x, r2.x), MAX(r1.y, r2.y), 0, 0 );
 
-    r.width  = CV_MIN(r1.x + r1.width, r2.x + r2.width) - r.x;
-    r.height = CV_MIN(r1.y + r1.height, r2.y + r2.height) - r.y;
+    r.width  = MIN(r1.x + r1.width, r2.x + r2.width) - r.x;
+    r.height = MIN(r1.y + r1.height, r2.y + r2.height) - r.y;
 
     return r;
 }
@@ -410,7 +410,7 @@ protected:
 class CV_EXPORTS CvBlobTrackGen: public CvVSModule
 {
 public:
-	CvBlobTrackGen(){SetTypeName("BlobTrackGen");};
+    CvBlobTrackGen(){SetTypeName("BlobTrackGen");};
     virtual void    SetFileName(char* pFileName) = 0;
     virtual void    AddBlob(CvBlob* pBlob) = 0;
     virtual void    Process(IplImage* pImg = NULL, IplImage* pFG = NULL) = 0;
@@ -597,7 +597,7 @@ CV_EXPORTS CvBlobTracker* cvCreateBlobTrackerMSPF();
 class CV_EXPORTS CvBlobTrackPostProc: public CvVSModule
 {
 public:
-	CvBlobTrackPostProc(){SetTypeName("BlobTrackPostProc");};
+    CvBlobTrackPostProc(){SetTypeName("BlobTrackPostProc");};
     virtual void    AddBlob(CvBlob* pBlob) = 0;
     virtual void    Process() = 0;
     virtual int     GetBlobNum() = 0;
@@ -628,7 +628,7 @@ inline void cvReleaseBlobTrackPostProc(CvBlobTrackPostProc** pBTPP)
 class CV_EXPORTS CvBlobTrackPostProcOne: public CvVSModule
 {
 public:
-	CvBlobTrackPostProcOne(){SetTypeName("BlobTrackPostOne");};
+    CvBlobTrackPostProcOne(){SetTypeName("BlobTrackPostOne");};
     virtual CvBlob* Process(CvBlob* pBlob) = 0;
     virtual void    Release() = 0;
 };
@@ -648,7 +648,7 @@ CV_EXPORTS CvBlobTrackPostProc* cvCreateModuleBlobTrackPostProcTimeAverExp();
 class CvBlobTrackPredictor: public CvVSModule
 {
 public:
-	CvBlobTrackPredictor(){SetTypeName("BlobTrackPredictor");};
+    CvBlobTrackPredictor(){SetTypeName("BlobTrackPredictor");};
     virtual CvBlob* Predict() = 0;
     virtual void    Update(CvBlob* pBlob) = 0;
     virtual void    Release() = 0;
@@ -661,7 +661,7 @@ CV_EXPORTS CvBlobTrackPredictor* cvCreateModuleBlobTrackPredictKalman();
 class CV_EXPORTS CvBlobTrackAnalysis: public CvVSModule
 {
 public:
-	CvBlobTrackAnalysis(){SetTypeName("BlobTrackAnalysis");};
+    CvBlobTrackAnalysis(){SetTypeName("BlobTrackAnalysis");};
     virtual void    AddBlob(CvBlob* pBlob) = 0;
     virtual void    Process(IplImage* pImg, IplImage* pFG) = 0;
     virtual float   GetState(int BlobID) = 0;
@@ -684,7 +684,7 @@ inline void cvReleaseBlobTrackAnalysis(CvBlobTrackAnalysis** pBTPP)
 class CV_EXPORTS CvBlobTrackFVGen : public CvVSModule
 {
 public:
-	CvBlobTrackFVGen(){SetTypeName("BlobTrackFVGen");};
+    CvBlobTrackFVGen(){SetTypeName("BlobTrackFVGen");};
     virtual void    AddBlob(CvBlob* pBlob) = 0;
     virtual void    Process(IplImage* pImg, IplImage* pFG) = 0;
     virtual void    Release() = 0;
@@ -762,7 +762,7 @@ public:
 class CV_EXPORTS CvBlobTrackerAuto: public CvVSModule
 {
 public:
-	CvBlobTrackerAuto(){SetTypeName("BlobTrackerAuto");};
+    CvBlobTrackerAuto(){SetTypeName("BlobTrackerAuto");};
     virtual void        Process(IplImage* pImg, IplImage* pMask = NULL) = 0;
     virtual CvBlob*     GetBlob(int index) = 0;
     virtual CvBlob*     GetBlobByID(int ID) = 0;

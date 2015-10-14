@@ -1,5 +1,6 @@
 #include "ofxAndroidGPS.h"
 #include "ofxAndroidUtils.h"
+#include "ofLog.h"
 #include <jni.h>
 
 ofEvent<ofxLocation> ofxAndroidGPS::locationChangedE;
@@ -9,32 +10,32 @@ void ofxAndroidGPS::startGPS(){
 	jclass OFAndroid = ofGetJavaOFAndroid();
 
 	if(OFAndroid==0){
-		ofLog(OF_LOG_ERROR,"cannot find OFAndroid java class");
+		ofLogError("ofxAndroidGPS") << "startGPS(): couldn't find OFAndroid java class";
 		return;
 	}
 
 	jmethodID setupGPS = ofGetJNIEnv()->GetStaticMethodID(OFAndroid,"setupGPS","()V");
 	if(!setupGPS){
-		ofLog(OF_LOG_ERROR,"cannot find OFAndroid.setupGPS method");
+		ofLogError("ofxAndroidGPS") << "startGPS(): couldn't find OFAndroid.setupGPS method";
 		return;
 	}
-	ofGetJNIEnv()->CallStaticObjectMethod(OFAndroid,setupGPS);
+	ofGetJNIEnv()->CallStaticVoidMethod(OFAndroid,setupGPS);
 }
 
 void ofxAndroidGPS::stopGPS(){
 	jclass OFAndroid = ofGetJavaOFAndroid();
 
 	if(OFAndroid==0){
-		ofLog(OF_LOG_ERROR,"cannot find OFAndroid java class");
+		ofLogError("ofxAndroidGPS") << "stopGPS(): couldn't find OFAndroid java class";
 		return;
 	}
 
 	jmethodID stopGPS = ofGetJNIEnv()->GetStaticMethodID(OFAndroid,"stopGPS","()V");
 	if(!stopGPS){
-		ofLog(OF_LOG_ERROR,"cannot find OFAndroid.stopGPS method");
+		ofLogError("ofxAndroidGPS") << "stopGPS(): couldn't find OFAndroid.stopGPS method";
 		return;
 	}
-	ofGetJNIEnv()->CallStaticObjectMethod(OFAndroid,stopGPS);
+	ofGetJNIEnv()->CallStaticVoidMethod(OFAndroid,stopGPS);
 }
 
 extern "C"{

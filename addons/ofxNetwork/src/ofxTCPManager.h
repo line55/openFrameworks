@@ -1,6 +1,4 @@
-#ifndef  ___ofxTCPManager__H__
-#define  ___ofxTCPManager__H__
-
+#pragma once
 
 //////////////////////////////////////////////////////////////////////////////////////
 // Original author: ???????? we think Christian Naglhofer
@@ -184,15 +182,18 @@ public:
 	int  Send(const char* pBuff, const int iSize);
 	//all data will be sent guaranteed.
 	int  SendAll(const char* pBuff, const int iSize);
+	int  PeekReceive(char* pBuff, const int iSize);
 	int  Receive(char* pBuff, const int iSize);
 	int  ReceiveAll(char* pBuff, const int iSize);
 	int  Write(const char* pBuff, const int iSize);
 	bool GetRemoteAddr(LPINETADDR pIntAddr);
 	bool GetInetAddr(LPINETADDR pInetAddr);
-	void SetTimeoutSend(int timeoutInSeconds);
+	void SetTimeoutConnect(int timeoutInSeconds);
+    void SetTimeoutSend(int timeoutInSeconds);
 	void SetTimeoutReceive(int timeoutInSeconds);
 	void SetTimeoutAccept(int timeoutInSeconds);
-	int  GetTimeoutSend();
+	int  GetTimeoutConnect();
+    int  GetTimeoutSend();
 	int  GetTimeoutReceive();
 	int  GetTimeoutAccept();
 	bool SetReceiveBufferSize(int sizeInByte);
@@ -204,7 +205,11 @@ public:
 	bool CheckHost(const char *pAddrStr);
 	void CleanUp();
 
-protected:
+private:
+	// private copy so this can't be copied to avoid problems with destruction
+	ofxTCPManager(const ofxTCPManager & mom){};
+	ofxTCPManager & operator=(const ofxTCPManager & mom){return *this;}
+
   int m_iListenPort;
   int m_iMaxConnections;
 
@@ -214,12 +219,12 @@ protected:
 	int m_hSocket;
   #endif
 
+  unsigned long m_dwTimeoutConnect;
   unsigned long m_dwTimeoutSend;
   unsigned long m_dwTimeoutReceive;
   unsigned long m_dwTimeoutAccept;
   bool nonBlocking;
   static bool m_bWinsockInit;
+  bool m_closing;
 
 };
-
-#endif // ___ofxTCPManager__H__

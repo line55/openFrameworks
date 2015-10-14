@@ -1,5 +1,7 @@
 #pragma once
 #include "ofColor.h"
+#include "ofShader.h"
+#include "ofBaseTypes.h"
 
 /**
  * Material concept: "Anything graphical applied to the polygons"
@@ -15,39 +17,53 @@
  */
 
 
-class ofMaterial {
+class ofMaterial: public ofBaseMaterial {
 public:
 	ofMaterial();
+	virtual ~ofMaterial(){};
 	
 	// set colors
-	void setColors(ofColor oDiffuse, ofColor oAmbient, ofColor oSpecular, ofColor emissive);
-	void setDiffuseColor(ofColor oDiffuse);
-	void setAmbientColor(ofColor oAmbient);
-	void setSpecularColor(ofColor oSpecular);
-	void setEmissiveColor(ofColor oEmmisive);
+	void setColors(ofFloatColor oDiffuse, ofFloatColor oAmbient, ofFloatColor oSpecular, ofFloatColor emissive);
+	void setDiffuseColor(ofFloatColor oDiffuse);
+	void setAmbientColor(ofFloatColor oAmbient);
+	void setSpecularColor(ofFloatColor oSpecular);
+	void setEmissiveColor(ofFloatColor oEmmisive);
 	void setShininess(float nShininess);
 
-	ofColor getDiffuseColor();
-	ofColor getAmbientColor();
-	ofColor getSpecularColor();
-	ofColor getEmissiveColor();
-	float getShininess();
+	ofFloatColor getDiffuseColor() const;
+	ofFloatColor getAmbientColor() const;
+	ofFloatColor getSpecularColor() const;
+	ofFloatColor getEmissiveColor() const;
+	float getShininess() const;
+    
+    struct Data{
+		Data();
+        ofFloatColor diffuse;
+        ofFloatColor ambient;
+        ofFloatColor specular;
+        ofFloatColor emissive;
+        float shininess;
+    };
+    Data getData() const;
+    void setData(const ofMaterial::Data& data);
 	
-	// apply the material
-	virtual void begin();
-	virtual void end();
-	
+    // apply the material
+	void begin() const;
+	void end() const;
+
 private:
-	ofColor diffuse;
-	ofColor ambient;
-	ofColor specular;
-	ofColor emissive;
-	float shininess;
+	void initShaders(ofGLProgrammableRenderer & renderer) const;
+	const ofShader & getShader(int textureTarget, ofGLProgrammableRenderer & renderer) const;
+	void updateMaterial(const ofShader & shader,ofGLProgrammableRenderer & renderer) const;
+	void updateLights(const ofShader & shader,ofGLProgrammableRenderer & renderer) const;
+    
+    Data data;
 
-
-	ofColor prev_diffuse;
-	ofColor prev_ambient;
-	ofColor prev_specular;
-	ofColor prev_emissive;
-	float prev_shininess;
+	static ofShader shaderNoTexture;
+	static ofShader shaderTexture2D;
+	static ofShader shaderTextureRect;
+	static bool shadersInitialized;
+	static size_t shaderLights;
+	static string vertexShader;
+	static string fragmentShader;
 };

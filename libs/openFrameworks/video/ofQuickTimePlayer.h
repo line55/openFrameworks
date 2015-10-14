@@ -6,8 +6,6 @@
 
 #ifdef OF_VIDEO_PLAYER_QUICKTIME
 	#include "ofQtUtils.h"
-#endif
-
 
 class ofQuickTimePlayer : public ofBaseVideoPlayer{
 
@@ -16,7 +14,7 @@ class ofQuickTimePlayer : public ofBaseVideoPlayer{
 		ofQuickTimePlayer();
 		~ofQuickTimePlayer();
 
-		 bool			loadMovie(string name);
+		 bool			load(string name);
 		 void			closeMovie();	
 		 void			close();
 		 void			update();
@@ -25,39 +23,43 @@ class ofQuickTimePlayer : public ofBaseVideoPlayer{
 		 void			stop();
 		 
 		 void			clearMemory();
+		 
+		bool            setPixelFormat(ofPixelFormat pixelFormat);
+		ofPixelFormat   getPixelFormat() const;		 
 	
-		 bool 			isFrameNew();
-		 unsigned char * 	getPixels();
-		 ofPixelsRef		getPixelsRef();
-		 const ofPixels&	getPixelsRef() const;
+		 bool 			isFrameNew() const;
+
+		 ofPixels&			getPixels();
+		 const ofPixels&	getPixels() const;
 		
-		 float 			getWidth();
-		 float 			getHeight();
+		 float 			getWidth() const;
+		 float 			getHeight() const;
 
-		 bool			isPaused();
-		 bool			isLoaded();
-		 bool			isPlaying();		 
+		 bool			isPaused() const;
+		 bool			isLoaded() const;
+		 bool			isPlaying() const;		 
 
-		 float 			getPosition();
-		 float 			getDuration();
-		 int			getTotalNumFrames();
-		 float			getSpeed();
-		 bool			getIsMovieDone();
+		 float 			getPosition() const;
+		 float 			getDuration() const;
+		 int			getTotalNumFrames() const;
+		 float			getSpeed() const;
+		 bool			getIsMovieDone() const;
+		 ofLoopType 	getLoopState() const;
 
 		 void 			setPosition(float pct);
-		 void 			setVolume(int volume);
+		 void 			setVolume(float volume);
 		 void 			setLoopState(ofLoopType state);
 		 void   		setSpeed(float speed);
 		 void			setFrame(int frame);  // frame 0 = first frame...
 		 void 			setPaused(bool bPause);
 
-		 int			getCurrentFrame();
+		 int			getCurrentFrame() const;
 
 		 void			firstFrame();
 		 void			nextFrame();
 		 void			previousFrame();
 		 
-		bool 				bHavePixelsChanged;
+		 mutable bool	bHavePixelsChanged;
 		 
 		 
 		
@@ -75,27 +77,23 @@ class ofQuickTimePlayer : public ofBaseVideoPlayer{
 		int					nFrames;				// number of frames
 		bool				allocated;				// so we know to free pixels or not
 
-		ofLoopType					currentLoopState;
+		ofLoopType			currentLoopState;
 		bool 				bStarted;
 		bool 				bPlaying;
 		bool 				bPaused;
 		bool 				bIsFrameNew;			// if we are new
 		float				speed;		
 		
-		//--------------------------------------
-		#ifdef OF_VIDEO_PLAYER_QUICKTIME
-		//--------------------------------------
-			MovieDrawingCompleteUPP myDrawCompleteProc;
-			MovieController  	thePlayer;
-			GWorldPtr 			offscreenGWorld;
-			Movie 			 	moviePtr;
-			unsigned char * 	offscreenGWorldPixels;	// 32 bit: argb (qt k32ARGBPixelFormat)
-			void				qtGetFrameCount(Movie & movForcount);
-		//--------------------------------------
-		#endif
-		//--------------------------------------
+		MovieDrawingCompleteUPP myDrawCompleteProc;
+		MovieController  	thePlayer;
+		GWorldPtr 			offscreenGWorld;
+		Movie 			 	moviePtr;
+		unsigned char * 	offscreenGWorldPixels;	// 32 bit: argb (qt k32ARGBPixelFormat)
+		void				qtGetFrameCount(Movie & movForcount);
 
 };
+
+#endif
 
 
 
