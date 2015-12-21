@@ -368,7 +368,9 @@ ofFile::~ofFile(){
 
 //-------------------------------------------------------------------------------------------------------------
 ofFile::ofFile(const ofFile & mom)
-:mode(Reference)
+:basic_ios()
+,fstream()
+,mode(Reference)
 ,binary(true){
 	copyFrom(mom);
 }
@@ -472,7 +474,7 @@ bool ofFile::create(){
 	if(!myFile.string().empty()){
 		auto oldmode = this->mode;
 		auto oldpath = path();
-		success = open(path(),ofFile::WriteOnly);
+		success = open(path(),ofFile::WriteOnly,binary);
 		close();
 		open(oldpath,oldmode,binary);
 	}
@@ -639,9 +641,10 @@ bool ofFile::isDevice() const {
 
 //------------------------------------------------------------------------------------------------------------
 bool ofFile::isHidden() const {
-#ifdef TARGET_WINDOWS
+#ifdef TARGET_WIN32
+	return false;
 #else
-	return myFile.filename().string()[0] == '.';
+	return myFile.filename() != "." && myFile.filename() != ".." && myFile.filename().string()[0] == '.';
 #endif
 }
 
@@ -749,11 +752,18 @@ bool ofFile::moveTo(const string& _path, bool bRelativeToData, bool overwrite){
 	}
 
 	try{
+		auto mode = this->mode;
+		if(mode != ofFile::Reference){
+			changeMode(ofFile::Reference, binary);
+		}
 		if(!ofDirectory(ofFilePath::getEnclosingDirectory(path,bRelativeToData)).exists()){
 			ofFilePath::createEnclosingDirectory(path, bRelativeToData);
 		}
 		std::filesystem::rename(myFile,path);
 		myFile = path;
+		if(mode != ofFile::Reference){
+			changeMode(mode, binary);
+		}
 	}
 	catch(std::exception & except){
 		ofLogError("ofFile") << "moveTo(): unable to move \"" << path << "\":" << except.what();
@@ -891,7 +901,7 @@ ofDirectory::ofDirectory(const std::filesystem::path & path){
 void ofDirectory::open(const std::filesystem::path & path){
 	originalDirectory = ofFilePath::getPathForDirectory(path.string());
 	files.clear();
-	myDir = std::filesystem::path(ofToDataPath(originalDirectory));
+    myDir = std::filesystem::path(ofToDataPath(originalDirectory));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -905,9 +915,9 @@ bool ofDirectory::create(bool recursive){
 	if(!myDir.string().empty()){
 		try{
 			if(recursive){
-				std::filesystem::create_directories(myDir);
+                std::filesystem::create_directories(myDir);
 			}else{
-				std::filesystem::create_directory(myDir);
+                std::filesystem::create_directory(myDir);
 			}
 		}
 		catch(std::exception & except){
@@ -1054,9 +1064,9 @@ bool ofDirectory::remove(bool recursive){
 
 	try{
 		if(recursive){
-			std::filesystem::remove_all(myDir);
+            std::filesystem::remove_all(std::filesystem::canonical(myDir));
 		}else{
-			std::filesystem::remove(myDir);
+            std::filesystem::remove(std::filesystem::canonical(myDir));
 		}
 	}catch(std::exception & except){
 		ofLogError("ofDirectory") << "remove(): unable to remove file/directory: " << except.what();
@@ -1092,10 +1102,6 @@ std::size_t ofDirectory::listDir(){
 		return 0;
 	}
 	
-	// File::list(vector<File>) is broken on windows as of march 23, 2011...
-	// so we need to use File::list(vector<string>) and build a vector<File>
-	// in the future the following can be replaced width: cur.list(files);
-	vector<string>fileStrings;
 	std::filesystem::directory_iterator end_iter;
 	if ( std::filesystem::exists(myDir) && std::filesystem::is_directory(myDir)){
 		for( std::filesystem::directory_iterator dir_iter(myDir) ; dir_iter != end_iter ; ++dir_iter){
@@ -1112,11 +1118,12 @@ std::size_t ofDirectory::listDir(){
 		});
 	}
 
+
 	if(!extensions.empty() && !ofContains(extensions, (string)"*")){
 		ofRemove(files, [&](ofFile & file){
 			return std::find(extensions.begin(), extensions.end(), ofToLower(file.getExtension())) == extensions.end();
 		});
-	}
+	}        
 
 	if(ofGetLogLevel() == OF_LOG_VERBOSE){
 		for(int i = 0; i < (int)size(); i++){
@@ -1506,7 +1513,7 @@ string ofFilePath::getUserHomeDir(){
 		// getenv will return any Environent Variable on Windows
 		// USERPROFILE is the key on Windows 7 but it might be HOME
 		// in other flavours of windows...need to check XP and NT...
-		return string(getenv("USERPROFILE"));
+		return ofGetEnv("USERPROFILE");
 	#elif !defined(TARGET_EMSCRIPTEN)
 		struct passwd * pw = getpwuid(getuid());
 		return pw->pw_dir;
@@ -1523,14 +1530,17 @@ string ofFilePath::makeRelative(const std::string & from, const std::string & to
     // Find common base
     for( std::filesystem::path::const_iterator toEnd( pathTo.end() ), fromEnd( pathFrom.end() ) ; itrFrom != fromEnd && itrTo != toEnd && *itrFrom == *itrTo; ++itrFrom, ++itrTo );
     // Navigate backwards in directory to reach previously found base
-    for( std::filesystem::path::const_iterator fromEnd( pathFrom.end() ); itrFrom != fromEnd; ++itrFrom )
-    {
-        if( (*itrFrom) != "." )
+    for( std::filesystem::path::const_iterator fromEnd( pathFrom.end() ); itrFrom != fromEnd; ++itrFrom ){
+        if( (*itrFrom) != "." ){
             ret /= "..";
+        }
     }
     // Now navigate down the directory branch
-    for( ; itrTo != pathTo.end() ; ++itrTo )
-        ret /= *itrTo;
+    for( ; itrTo != pathTo.end() ; ++itrTo ){
+        if( itrTo->string() != "."){
+            ret /= *itrTo;
+        }
+    }
 
     return ret.string();
 }

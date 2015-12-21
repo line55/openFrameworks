@@ -211,11 +211,43 @@ ofPixels_<PixelType>::ofPixels_(const ofPixels_<PixelType> & mom){
 }
 
 template<typename PixelType>
+ofPixels_<PixelType>::ofPixels_(ofPixels_<PixelType> && mom)
+:pixels(mom.pixels)
+,width(mom.width)
+,height(mom.height)
+,pixelsSize(mom.pixelsSize)
+,bAllocated(mom.bAllocated)
+,pixelsOwner(mom.pixelsOwner)
+,pixelFormat(mom.pixelFormat){
+	mom.pixelsOwner = false;
+}
+
+template<typename PixelType>
 ofPixels_<PixelType>& ofPixels_<PixelType>::operator=(const ofPixels_<PixelType> & mom){
 	if(this==&mom) {
 		return * this;
 	}
 	copyFrom( mom );
+	return *this;
+}
+
+template<typename PixelType>
+ofPixels_<PixelType>& ofPixels_<PixelType>::operator=(ofPixels_<PixelType> && mom){
+	if(this==&mom) {
+		return * this;
+	}
+    if(pixelsOwner || !bAllocated || !mom.bAllocated || width!=mom.width || height!=mom.height || pixelFormat != mom.pixelFormat){
+        clear();
+        pixels = mom.pixels;
+        width = mom.width;
+        height = mom.height;
+        pixelsSize = mom.pixelsSize;
+        bAllocated = mom.bAllocated;
+        pixelsOwner = mom.pixelsOwner;
+        mom.pixelsOwner = false;
+    }else{
+        memcpy(pixels, mom.pixels, getTotalBytes());
+    }
 	return *this;
 }
 
@@ -243,7 +275,9 @@ void ofPixels_<PixelType>::set(int channel,PixelType val){
 		case OF_PIXELS_RGBA:
 		case OF_PIXELS_BGRA:
 		case OF_PIXELS_GRAY:
-		case OF_PIXELS_GRAY_ALPHA:{
+        case OF_PIXELS_GRAY_ALPHA:
+        case OF_PIXELS_UV:
+        case OF_PIXELS_VU:{
 			for(auto pixel: getPixelsIter()){
 				pixel[channel] = val;
 			}
@@ -258,9 +292,7 @@ void ofPixels_<PixelType>::set(int channel,PixelType val){
 		case OF_PIXELS_UYVY:
 		case OF_PIXELS_Y:
 		case OF_PIXELS_U:
-		case OF_PIXELS_V:
-		case OF_PIXELS_UV:
-		case OF_PIXELS_VU:
+        case OF_PIXELS_V:
 		case OF_PIXELS_UNKNOWN:
 		default:
 			ofLogWarning() << "setting channels not supported for " << ofToString(pixelFormat) << " format";
@@ -329,6 +361,60 @@ void ofPixels_<PixelType>::setFromAlignedPixels(const PixelType * newPixels, int
 		src += stride;
 		dst += dstStride;
 	}
+}
+
+template<typename PixelType>
+void ofPixels_<PixelType>::setFromAlignedPixels(const PixelType * newPixels, int width, int height, ofPixelFormat _pixelFormat, std::vector<int> strides) {
+	int channels = channelsFromPixelFormat(_pixelFormat);
+	if(channels==0) return;
+
+	switch(pixelFormat){
+	case OF_PIXELS_I420: {
+	    if(strides.size() != 3){
+		ofLogError("ofPixels") << "number of planes for I420 should be 3";
+		break;
+	    }
+
+	    if(width==strides[0] && width/2==strides[1] && width/2==strides[2]){
+		setFromPixels(newPixels,width,height,_pixelFormat);
+		return;
+	    }
+
+	    allocate(width, height, _pixelFormat);
+
+	    const unsigned char* src = (unsigned char*) newPixels;
+	    unsigned char* dst =  (unsigned char*) pixels;
+	    // Y Plane
+	    for(int i = 0; i < height; i++) {
+		memcpy(dst, src, width);
+		src += strides[0];
+		dst += width;
+	    }
+	    // U Plane
+	    for(int i = 0; i < height /2; i++){
+		memcpy(dst,src,width/2);
+		src += strides[1];
+		dst += width/2;
+	    }
+	    // V Plane
+	    for(int i = 0; i < height /2; i++){
+		memcpy(dst,src,width/2);
+		src += strides[2];
+		dst += width/2;
+	    }
+	    break;
+	}
+	case OF_PIXELS_RGB:
+	case OF_PIXELS_RGBA:
+	case OF_PIXELS_GRAY:
+	case OF_PIXELS_GRAY_ALPHA:
+	    setFromAlignedPixels(newPixels,width,height,_pixelFormat,strides[0]);
+	    return;
+	default:
+	    ofLogError("ofPixels") << "setFromAlignedPixels with planes strides: pixel format not supported yet";
+	    break;
+	}
+	return;
 }
 
 template<typename PixelType>
@@ -478,10 +564,17 @@ int ofPixels_<PixelType>::getPixelIndex(int x, int y) const {
 				return ( x + y * width ) * pixelStride;
 				break;
 			case OF_PIXELS_GRAY:
+            case OF_PIXELS_Y:
+            case OF_PIXELS_U:
+            case OF_PIXELS_V:
 				pixelStride = 1;
 				return ( x + y * width ) * pixelStride;
 				break;
 			case OF_PIXELS_GRAY_ALPHA:
+            case OF_PIXELS_UV:
+            case OF_PIXELS_VU:
+            case OF_PIXELS_YUY2:
+            case OF_PIXELS_UYVY:
 				pixelStride = 2;
 				return ( x + y * width ) * pixelStride;
 				break;
@@ -491,14 +584,7 @@ int ofPixels_<PixelType>::getPixelIndex(int x, int y) const {
 				break;
 			case OF_PIXELS_NV12:
 			case OF_PIXELS_YV12:
-			case OF_PIXELS_I420:
-			case OF_PIXELS_YUY2:
-			case OF_PIXELS_UYVY:
-			case OF_PIXELS_Y:
-			case OF_PIXELS_U:
-			case OF_PIXELS_V:
-			case OF_PIXELS_UV:
-			case OF_PIXELS_VU:
+            case OF_PIXELS_I420:
 			case OF_PIXELS_UNKNOWN:
 			default:
 				ofLogWarning() << "getting pixel index not supported for " << ofToString(pixelFormat) << " format";
@@ -810,7 +896,7 @@ ofPixels_<PixelType> ofPixels_<PixelType>::getPlane(int planeIdx){
 		case OF_PIXELS_UNKNOWN:
 			break;
 	}
-	return plane;
+	return std::move(plane);
 }
 
 template<typename PixelType>
@@ -873,7 +959,7 @@ ofPixels_<PixelType> ofPixels_<PixelType>::getChannel(int channel) const{
 	for(auto p: getConstPixelsIter()){
 		*channelPixel++ = p[channel];
 	}
-	return channelPixels;
+	return std::move(channelPixels);
 }
 
 template<typename PixelType>

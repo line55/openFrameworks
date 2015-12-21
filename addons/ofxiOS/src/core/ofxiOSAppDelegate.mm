@@ -29,11 +29,14 @@
  *
  * ***********************************************************************/
 
-#import "ofMain.h"
-#import "ofxiOSAppDelegate.h"
-#import "ofxiOSViewController.h"
-#import "ofxiOSExtras.h"
-#import "ofxiOSExternalDisplay.h"
+#include "ofxiOSAppDelegate.h"
+#include "ofxiOSViewController.h"
+#include "ofxiOSExternalDisplay.h"
+#include "ofxiOSExtras.h"
+#include "ofxiOSAlerts.h"
+#include "ofxiOSEAGLView.h"
+#include "ofAppiOSWindow.h"
+#include "ofAppRunner.h"
 
 @implementation ofxiOSAppDelegate
 
@@ -166,6 +169,11 @@
     [ofxiOSGetGLView() stopAnimation];
 	
 	ofxiOSAlerts.lostFocus();
+	glFinish();
+}
+
+- (void)applicationDidEnterBackground:(UIApplication *)application {
+	glFinish();
 }
 
 - (void)applicationDidBecomeActive:(UIApplication *)application {
@@ -227,7 +235,6 @@
  */
 
 - (void)handleScreenConnectNotification:(NSNotification*)aNotification {
-    [self createExternalWindowWithPreferredMode]; // create external window as soon as external screen is connected to prevent unwanted mirroring.
     ofxiOSExternalDisplay::alertExternalDisplayConnected(); // alert any OF apps listening for a new external device.
 }
 
@@ -237,7 +244,7 @@
 }
 
 - (void)handleScreenModeDidChangeNotification:(NSNotification*)aNotification {
-    //
+	ofxiOSExternalDisplay::alertExternalDisplayChanged();
 }
 
 //-------------------------------------------------------------------------------------------

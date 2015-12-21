@@ -26,8 +26,11 @@ bool ofxAssimpModelLoader::loadModel(string modelName, bool optimize){
     ofLogVerbose("ofxAssimpModelLoader") << "loadModel(): loading \"" << file.getFileName()
 		<< "\" from \"" << file.getEnclosingDirectory() << "\"";
     
-    if(scene != NULL){
+    if(scene.get() != nullptr){
         clear();
+		// we reset the shared_ptr explicitly here, to force the old 
+		// aiScene to be deleted **before** a new aiScene is created.
+		scene.reset();
     }
     
     // sets various properties & flags to a default preference
@@ -45,8 +48,11 @@ bool ofxAssimpModelLoader::loadModel(ofBuffer & buffer, bool optimize, const cha
     
     ofLogVerbose("ofxAssimpModelLoader") << "loadModel(): loading from memory buffer \"." << extension << "\"";
     
-    if(scene != NULL){
+    if(scene.get() != nullptr){
         clear();
+		// we reset the shared_ptr explicitly here, to force the old 
+		// aiScene to be deleted **before** a new aiScene is created.
+		scene.reset();
     }
     
     // sets various properties & flags to a default preference
@@ -280,6 +286,12 @@ void ofxAssimpModelLoader::loadGLResources(){
         meshHelper.validCache = true;
         meshHelper.hasChanged = false;
 
+		int numOfAnimations = scene->mNumAnimations;
+		for (int i = 0; i<numOfAnimations; i++) {
+			aiAnimation * animation = scene->mAnimations[i];
+			animations.push_back(ofxAssimpAnimation(scene, animation));
+		}
+
         if(hasAnimations()){
 			meshHelper.animatedPos.resize(mesh->mNumVertices);
 			if(mesh->HasNormals()){
@@ -328,11 +340,7 @@ void ofxAssimpModelLoader::loadGLResources(){
         //modelMeshes.push_back(meshHelper);
     }
     
-    int numOfAnimations = scene->mNumAnimations;
-    for(int i=0; i<numOfAnimations; i++) {
-        aiAnimation * animation = scene->mAnimations[i];
-        animations.push_back(ofxAssimpAnimation(scene, animation));
-    }
+
 
     ofLogVerbose("ofxAssimpModelLoader") << "loadGLResource(): finished";
 }
@@ -714,6 +722,10 @@ void ofxAssimpModelLoader::draw(ofPolyRenderMode renderType) {
     ofPushMatrix();
     ofMultMatrix(modelMatrix);
     
+#ifndef TARGET_OPENGLES
+        glPolygonMode(GL_FRONT_AND_BACK, ofGetGLPolyMode(renderType));
+#endif
+    
     for(unsigned int i=0; i<modelMeshes.size(); i++) {
         ofxAssimpMeshHelper & mesh = modelMeshes[i];
         
@@ -738,6 +750,7 @@ void ofxAssimpModelLoader::draw(ofPolyRenderMode renderType) {
         }
         
         ofEnableBlendMode(mesh.blendMode);
+        
 #ifndef TARGET_OPENGLES
         mesh.vbo.drawElements(GL_TRIANGLES,mesh.indices.size());
 #else
@@ -746,6 +759,8 @@ void ofxAssimpModelLoader::draw(ofPolyRenderMode renderType) {
 		    	mesh.vbo.drawElements(GL_TRIANGLES,mesh.indices.size());
 		    	break;
 		    case OF_MESH_WIREFRAME:
+                //note this won't look the same as on non ES renderers.
+                //there is no easy way to convert GL_TRIANGLES to outlines for each triangle
 		    	mesh.vbo.drawElements(GL_LINES,mesh.indices.size());
 		    	break;
 		    case OF_MESH_POINTS:
@@ -766,6 +781,13 @@ void ofxAssimpModelLoader::draw(ofPolyRenderMode renderType) {
         
         ofPopMatrix();
     }
+    
+    #ifndef TARGET_OPENGLES
+        //set the drawing mode back to FILL if its drawn the model with a different mode.
+        if( renderType != OF_MESH_FILL ){
+            glPolygonMode(GL_FRONT_AND_BACK, ofGetGLPolyMode(OF_MESH_FILL));
+        }
+    #endif
 
     ofPopMatrix();
     ofPopStyle();
