@@ -4,6 +4,7 @@
 #include "ofUtils.h"
 #include "ofColor.h"
 #include "ofMath.h"
+#include "ofLog.h"
 #include <limits>
 
 
@@ -334,6 +335,9 @@ public:
 
 	void setNumChannels(int numChannels);
 
+    static int pixelBitsFromPixelFormat(ofPixelFormat format);
+    static int bytesFromPixelFormat(int w, int h, ofPixelFormat format);
+
 	/// \}
 	/// \name Iterator
 	/// \{
@@ -542,15 +546,15 @@ private:
 	template<typename SrcType>
 	void copyFrom( const ofPixels_<SrcType>& mom );
 	
-	PixelType * pixels;
-	int 	width;
-	int 	height;
+	PixelType * pixels = nullptr;
+	int 	width = 0;
+	int 	height = 0;
 
 	//int 	channels; // 1, 3, 4 channels per pixel (grayscale, rgb, rgba)
-	int 	pixelsSize;
-	bool	bAllocated;
-	bool	pixelsOwner;			// if set from external data don't delete it
-	ofPixelFormat pixelFormat;
+	int 	pixelsSize = 0;
+	bool	bAllocated = false;
+	bool	pixelsOwner = true;			// if set from external data don't delete it
+	ofPixelFormat pixelFormat = OF_PIXELS_UNKNOWN;
 
 };
 
